@@ -1,0 +1,62 @@
+---
+title: "Functional Programming"
+subtitle: "Functionals, Function Factories, and Function Operators"
+author: Julianne Clina
+date: 2026-10-07
+image: "https://github.com/bhelsel/2026-RLAB-Practical-Exercises/raw/main/images/rlab-placeholder.png"
+execute:
+  echo: true
+  eval: true
+  message: false
+  warning: false
+---
+
+**Assignment**. Practice using functionals, function factories, and function
+operators to improve your programming skillset.
+
+**Functionals: Run Multiple Regressions**. Use a functional to fit a separate
+regression of mpg on each predictor. Extract the coefficient, p-value, and
+R<sup>2</sup> from each model. Combine the results into a data frame showing one
+row per predictor.
+
+
+```{r}
+
+predictors <- c("disp", "hp", "wt", "qsec")
+
+models <- purrr::map(predictors, \(x) {
+  lm(reformulate(x, response = "mpg"), data = mtcars)
+})
+models
+
+results <- purrr::map_dfr(models, \(model) {
+  broom::tidy(model) %>%
+    dplyr::filter(term != "(Intercept)") %>%
+    dplyr::select(term, estimate, p.value) %>%
+    dplyr::mutate(r_squared = broom::glance(model)$r.squared)
+})
+results
+```
+
+**Function Factories: Create a Model Factory**. Create a function called
+`make_modeler` that takes a dataset and an outcome variable and returns a
+function that fits a linear model using a predictor supplied later. Use it to
+fit models predicting mpg and modify the returned function so it returns a tidy
+summary of the model rather than the entire model object.
+
+
+```{r}
+
+make_modeler <- function(data, outcome) {
+  function(predictor) {
+    model <- lm(reformulate(predictor, response = outcome), data = data)
+    tidymodel <- broom::tidy(model) %>%
+      dplyr::filter(term != "(Intercept)")
+    return(tidymodel)
+  }
+}
+
+model_mpg <- make_modeler(mtcars, "mpg")
+
+purrr::map_dfr(c("wt", "hp", "disp", "qsec"), model_mpg)
+```
