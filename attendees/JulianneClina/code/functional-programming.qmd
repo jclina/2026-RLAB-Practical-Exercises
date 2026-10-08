@@ -60,3 +60,66 @@ model_mpg <- make_modeler(mtcars, "mpg")
 
 purrr::map_dfr(c("wt", "hp", "disp", "qsec"), model_mpg)
 ```
+
+
+**Julianne making more practice examples** 
+```{r}
+library(palmerpenguins)
+
+penguin_modeler <- function(data, outcome) {
+  function(predictor) {
+    model <- lm(
+      reformulate(predictor, response = outcome),
+      data = data
+    )
+    broom::tidy(model)
+  }
+}
+
+model_bill <- penguin_modeler(penguins, "body_mass_g")
+model_bill
+
+model_bill("bill_length_mm")
+
+predictors_penguin <- c(
+  "bill_length_mm",
+  "bill_depth_mm",
+  "flipper_length_mm"
+)
+
+purrr::map_dfr(predictors_penguin, model_bill)
+```
+
+**plotting practice**
+```{r}
+library(ggplot2)
+
+make_plotter <- function(data, outcome) {
+  function(predictor) {
+    ggplot(
+      data,
+      aes(x = .data[[predictor]], y = .data[[outcome]])
+    ) +
+      geom_point() +
+      geom_smooth(method = "lm", se = FALSE)
+  }
+}
+
+penguin_body_mass_plotter <- make_plotter(
+  penguins,
+  "body_mass_g"
+)
+
+predictors_plot <- c(
+  "bill_length_mm",
+  "bill_depth_mm",
+  "flipper_length_mm"
+)
+
+plots <- purrr::map(
+  predictors_plot,
+  penguin_body_mass_plotter
+)
+
+patchwork::wrap_plots(plots)
+```
